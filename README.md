@@ -1,4 +1,4 @@
-# 🖥️ Soft-Manage
+# 🖥️ Softwear-Manage
 
 <p align="center">
   <img src="https://img.shields.io/badge/Electron-28.0.0-47848F?logo=electron&logoColor=white" alt="Electron">
@@ -68,8 +68,8 @@
 
 1. **克隆仓库**
 ```bash
-git clone https://github.com/your-username/soft-manage.git
-cd soft-manage
+git clone https://github.com/your-username/softwear-manage.git
+cd softwear-manage
 ```
 
 2. **安装依赖**

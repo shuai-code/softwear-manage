@@ -310,8 +310,8 @@ body {
     color: var(--text-muted);
 }
 
-/* 主题切换按钮 */
-.theme-toggle {
+/* 设置按钮 */
+.btn-icon-settings {
     width: 40px;
     height: 40px;
     border: none;
@@ -327,7 +327,7 @@ body {
     border: 1px solid var(--border-color);
 }
 
-.theme-toggle:hover {
+.btn-icon-settings:hover {
     background: var(--bg-card-hover);
     border-color: var(--accent-primary);
     transform: scale(1.05);
@@ -918,6 +918,136 @@ body {
 
 .btn-browse:hover {
     background: var(--accent-secondary);
+}
+
+/* 设置弹窗 */
+.modal-settings {
+    max-width: 560px;
+}
+
+.settings-section {
+    margin-bottom: 24px;
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+}
+
+.settings-item-vertical {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.settings-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.settings-item-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.settings-item-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.settings-item-control {
+    flex-shrink: 0;
+}
+
+/* 主题切换器 */
+.theme-switcher {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.theme-option {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.theme-option:hover {
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+}
+
+.theme-option.active {
+    background: var(--accent-primary);
+    color: white;
+    box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* 存储路径设置 */
+.settings-storage-path {
+    display: flex;
+    gap: 8px;
+}
+
+.settings-storage-path input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.settings-storage-path .btn-browse {
+    padding: 10px 16px;
+}
+
+.settings-storage-path .btn-secondary {
+    padding: 10px 14px;
+    font-size: 13px;
+}
+
+.settings-storage-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--info-bg);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    color: var(--info);
+}
+
+.settings-storage-hint .hint-icon {
+    font-size: 14px;
 }
 
 /* 分组选择列表 */

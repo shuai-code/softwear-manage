@@ -41,5 +41,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveTheme: (theme) => ipcRenderer.invoke('save-theme', theme),
 
     // 获取主题设置
-    getTheme: () => ipcRenderer.invoke('get-theme')
+    getTheme: () => ipcRenderer.invoke('get-theme'),
+
+    // 获取所有设置
+    getSettings: () => ipcRenderer.invoke('get-settings'),
+
+    // 保存所有设置
+    saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+
+    // 选择存储目录
+    selectStorageDir: () => ipcRenderer.invoke('select-storage-dir'),
+
+    // 获取存储目录信息
+    getStorageInfo: () => ipcRenderer.invoke('get-storage-info')
 });

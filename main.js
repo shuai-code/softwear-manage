@@ -5,11 +5,28 @@ const fs = require('fs');
 
 let mainWindow;
 
-// 数据存储路径
-const dataPath = path.join(app.getPath('userData'), 'groups.json');
-const customPathsFile = path.join(app.getPath('userData'), 'customPaths.json');
-const portableAppsFile = path.join(app.getPath('userData'), 'portableApps.json');
-const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+// 默认数据存储路径
+const defaultDataDir = app.getPath('userData');
+const settingsFile = path.join(defaultDataDir, 'settings.json');
+
+// 获取当前存储目录
+function getDataDir() {
+    const settings = loadSettings();
+    return settings.dataDir || defaultDataDir;
+}
+
+// 获取数据文件路径
+function getDataPath() {
+    return path.join(getDataDir(), 'groups.json');
+}
+
+function getCustomPathsFile() {
+    return path.join(getDataDir(), 'customPaths.json');
+}
+
+function getPortableAppsFile() {
+    return path.join(getDataDir(), 'portableApps.json');
+}
 
 function createWindow() {
     // 隐藏菜单栏
@@ -191,6 +208,7 @@ async function launchApp(appPath) {
 // 加载分组数据
 function loadGroups() {
     try {
+        const dataPath = getDataPath();
         if (fs.existsSync(dataPath)) {
             const data = fs.readFileSync(dataPath, 'utf8');
             return JSON.parse(data);
@@ -204,6 +222,12 @@ function loadGroups() {
 // 保存分组数据
 function saveGroups(groups) {
     try {
+        const dataPath = getDataPath();
+        // 确保目录存在
+        const dir = path.dirname(dataPath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
         fs.writeFileSync(dataPath, JSON.stringify(groups, null, 4), 'utf8');
         return true;
     } catch (error) {
@@ -215,6 +239,7 @@ function saveGroups(groups) {
 // 加载自定义路径
 function loadCustomPaths() {
     try {
+        const customPathsFile = getCustomPathsFile();
         if (fs.existsSync(customPathsFile)) {
             const data = fs.readFileSync(customPathsFile, 'utf8');
             return JSON.parse(data);
@@ -228,6 +253,7 @@ function loadCustomPaths() {
 // 加载便携应用列表
 function loadPortableApps() {
     try {
+        const portableAppsFile = getPortableAppsFile();
         if (fs.existsSync(portableAppsFile)) {
             const data = fs.readFileSync(portableAppsFile, 'utf8');
             return JSON.parse(data);
@@ -241,6 +267,12 @@ function loadPortableApps() {
 // 保存便携应用列表
 function savePortableApps(apps) {
     try {
+        const portableAppsFile = getPortableAppsFile();
+        // 确保目录存在
+        const dir = path.dirname(portableAppsFile);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
         fs.writeFileSync(portableAppsFile, JSON.stringify(apps, null, 4), 'utf8');
         return true;
     } catch (error) {
@@ -378,6 +410,12 @@ ipcMain.handle('save-custom-path', (event, appId, customPath) => {
     try {
         const customPaths = loadCustomPaths();
         customPaths[appId] = customPath;
+        const customPathsFile = getCustomPathsFile();
+        // 确保目录存在
+        const dir = path.dirname(customPathsFile);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
         fs.writeFileSync(customPathsFile, JSON.stringify(customPaths, null, 4), 'utf8');
         return true;
     } catch (error) {
@@ -444,4 +482,49 @@ ipcMain.handle('save-theme', (event, theme) => {
 ipcMain.handle('get-theme', () => {
     const settings = loadSettings();
     return settings.theme || 'dark';
+});
+
+// 获取所有设置
+ipcMain.handle('get-settings', () => {
+    const settings = loadSettings();
+    return {
+        theme: settings.theme || 'dark',
+        dataDir: settings.dataDir || defaultDataDir,
+        defaultDataDir: defaultDataDir
+    };
+});
+
+// 保存所有设置
+ipcMain.handle('save-settings', (event, newSettings) => {
+    try {
+        const settings = loadSettings();
+        Object.assign(settings, newSettings);
+        return saveSettings(settings);
+    } catch (error) {
+        console.error('保存设置失败:', error);
+        return false;
+    }
+});
+
+// 选择存储目录
+ipcMain.handle('select-storage-dir', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: '选择数据存储目录',
+        properties: ['openDirectory', 'createDirectory']
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+        return { dirPath: result.filePaths[0] };
+    }
+    return null;
+});
+
+// 获取当前存储目录信息
+ipcMain.handle('get-storage-info', () => {
+    const settings = loadSettings();
+    return {
+        currentDir: settings.dataDir || defaultDataDir,
+        defaultDir: defaultDataDir,
+        isCustom: !!settings.dataDir && settings.dataDir !== defaultDataDir
+    };
 });

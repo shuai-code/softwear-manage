@@ -41,8 +41,8 @@
                     <div class="search-box">
                         <input type="text" id="searchInput" placeholder="搜索应用..." />
                     </div>
-                    <button id="themeToggleBtn" class="theme-toggle" title="切换主题">
-                        🌙
+                    <button id="settingsBtn" class="btn-icon-settings" title="设置">
+                        ⚙️
                     </button>
                     <button id="refreshBtn" class="btn-secondary" title="刷新应用列表">
                         🔄 刷新
@@ -151,6 +151,58 @@
             <div class="modal-footer">
                 <button class="btn-ghost" id="cancelAddPortable">取消</button>
                 <button class="btn-primary" id="confirmAddPortable">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content modal-settings">
+            <div class="modal-header">
+                <h3>⚙️ 设置</h3>
+                <button class="modal-close" id="closeSettingsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4 class="settings-section-title">🎨 外观</h4>
+                    <div class="settings-item">
+                        <div class="settings-item-info">
+                            <span class="settings-item-label">主题模式</span>
+                            <span class="settings-item-desc">选择应用的显示主题</span>
+                        </div>
+                        <div class="settings-item-control">
+                            <div class="theme-switcher" id="themeSwitcher">
+                                <button class="theme-option" data-theme="light" title="浅色主题">
+                                    ☀️ 浅色
+                                </button>
+                                <button class="theme-option" data-theme="dark" title="深色主题">
+                                    🌙 深色
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4 class="settings-section-title">📁 存储</h4>
+                    <div class="settings-item settings-item-vertical">
+                        <div class="settings-item-info">
+                            <span class="settings-item-label">数据存储目录</span>
+                            <span class="settings-item-desc">应用数据（分组、设置等）的保存位置</span>
+                        </div>
+                        <div class="settings-storage-path">
+                            <input type="text" id="storagePathInput" readonly />
+                            <button id="browseStoragePathBtn" class="btn-browse">浏览</button>
+                            <button id="resetStoragePathBtn" class="btn-secondary" title="恢复默认">重置</button>
+                        </div>
+                        <div class="settings-storage-hint">
+                            <span class="hint-icon">💡</span>
+                            <span>修改存储目录后需要重启应用才能生效</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="closeSettingsBtn">完成</button>
             </div>
         </div>
     </div>

@@ -31,7 +31,12 @@ const elements = {
     cancelSelectBtn: document.getElementById('cancelSelectBtn'),
     quickLaunchBtn: document.getElementById('quickLaunchBtn'),
     removeFromGroupBtn: document.getElementById('removeFromGroupBtn'),
-    themeToggleBtn: document.getElementById('themeToggleBtn'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    settingsModal: document.getElementById('settingsModal'),
+    themeSwitcher: document.getElementById('themeSwitcher'),
+    storagePathInput: document.getElementById('storagePathInput'),
+    browseStoragePathBtn: document.getElementById('browseStoragePathBtn'),
+    resetStoragePathBtn: document.getElementById('resetStoragePathBtn'),
     addPortableBtn: document.getElementById('addPortableBtn'),
     addPortableModal: document.getElementById('addPortableModal'),
     portableNameInput: document.getElementById('portableNameInput'),
@@ -42,7 +47,7 @@ const elements = {
 
 // 初始化
 async function init() {
-    await loadTheme();
+    await loadSettings();
     await loadGroups();
     renderGroups();
     setupEventListeners();
@@ -52,29 +57,87 @@ async function init() {
     elements.emptyState.style.display = 'flex';
 }
 
-// 加载主题
-async function loadTheme() {
+// 加载设置
+async function loadSettings() {
     try {
-        currentTheme = await window.electronAPI.getTheme();
+        const settings = await window.electronAPI.getSettings();
+        currentTheme = settings.theme || 'dark';
         applyTheme(currentTheme);
+        
+        // 更新存储路径显示
+        if (elements.storagePathInput) {
+            elements.storagePathInput.value = settings.dataDir || settings.defaultDataDir;
+        }
     } catch (error) {
-        console.error('加载主题失败:', error);
+        console.error('加载设置失败:', error);
     }
 }
 
 // 应用主题
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    elements.themeToggleBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-    elements.themeToggleBtn.title = theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
+    // 更新设置弹窗中的主题选择器
+    updateThemeSwitcher(theme);
+}
+
+// 更新主题切换器状态
+function updateThemeSwitcher(theme) {
+    if (elements.themeSwitcher) {
+        elements.themeSwitcher.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === theme);
+        });
+    }
 }
 
 // 切换主题
-async function toggleTheme() {
-    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+async function switchTheme(theme) {
+    currentTheme = theme;
     applyTheme(currentTheme);
     await window.electronAPI.saveTheme(currentTheme);
     showToast(`已切换到${currentTheme === 'dark' ? '深色' : '浅色'}主题`, 'success');
+}
+
+// 打开设置弹窗
+async function openSettings() {
+    // 刷新设置数据
+    try {
+        const settings = await window.electronAPI.getSettings();
+        elements.storagePathInput.value = settings.dataDir || settings.defaultDataDir;
+        updateThemeSwitcher(settings.theme || 'dark');
+    } catch (error) {
+        console.error('加载设置失败:', error);
+    }
+    showModal('settingsModal');
+}
+
+// 浏览选择存储目录
+async function browseStoragePath() {
+    try {
+        const result = await window.electronAPI.selectStorageDir();
+        if (result && result.dirPath) {
+            elements.storagePathInput.value = result.dirPath;
+            
+            // 保存新的存储目录
+            await window.electronAPI.saveSettings({ dataDir: result.dirPath });
+            showToast('存储目录已更新，重启应用后生效', 'info');
+        }
+    } catch (error) {
+        showToast('选择目录失败', 'error');
+    }
+}
+
+// 重置存储目录为默认值
+async function resetStoragePath() {
+    try {
+        const settings = await window.electronAPI.getSettings();
+        elements.storagePathInput.value = settings.defaultDataDir;
+        
+        // 保存默认存储目录
+        await window.electronAPI.saveSettings({ dataDir: settings.defaultDataDir });
+        showToast('存储目录已重置为默认位置', 'success');
+    } catch (error) {
+        showToast('重置失败', 'error');
+    }
 }
 
 // 设置事件监听器
@@ -87,7 +150,20 @@ function setupEventListeners() {
     elements.cancelSelectBtn.addEventListener('click', clearSelection);
     elements.quickLaunchBtn.addEventListener('click', quickLaunchGroup);
     elements.removeFromGroupBtn.addEventListener('click', removeFromGroup);
-    elements.themeToggleBtn.addEventListener('click', toggleTheme);
+
+    // 设置按钮和弹窗
+    elements.settingsBtn.addEventListener('click', openSettings);
+    document.getElementById('closeSettingsModal').addEventListener('click', () => hideModal('settingsModal'));
+    document.getElementById('closeSettingsBtn').addEventListener('click', () => hideModal('settingsModal'));
+    
+    // 主题切换
+    elements.themeSwitcher.querySelectorAll('.theme-option').forEach(btn => {
+        btn.addEventListener('click', () => switchTheme(btn.dataset.theme));
+    });
+    
+    // 存储目录设置
+    elements.browseStoragePathBtn.addEventListener('click', browseStoragePath);
+    elements.resetStoragePathBtn.addEventListener('click', resetStoragePath);
 
     // 添加便携应用
     elements.addPortableBtn.addEventListener('click', () => showModal('addPortableModal'));
