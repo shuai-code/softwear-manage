@@ -24,7 +24,9 @@ const elements = {
     currentView: document.getElementById('currentView'),
     addGroupModal: document.getElementById('addGroupModal'),
     selectGroupModal: document.getElementById('selectGroupModal'),
+    renameGroupModal: document.getElementById('renameGroupModal'),
     groupNameInput: document.getElementById('groupNameInput'),
+    renameGroupInput: document.getElementById('renameGroupInput'),
     groupSelectList: document.getElementById('groupSelectList'),
     toastContainer: document.getElementById('toastContainer'),
     addToGroupBtn: document.getElementById('addToGroupBtn'),
@@ -177,6 +179,11 @@ function setupEventListeners() {
     document.getElementById('cancelAddGroup').addEventListener('click', () => hideModal('addGroupModal'));
     document.getElementById('confirmAddGroup').addEventListener('click', createGroup);
 
+    // 重命名分组弹窗事件
+    document.getElementById('closeRenameGroupModal').addEventListener('click', () => hideModal('renameGroupModal'));
+    document.getElementById('cancelRenameGroup').addEventListener('click', () => hideModal('renameGroupModal'));
+    document.getElementById('confirmRenameGroup').addEventListener('click', renameGroup);
+
     // 选择分组弹窗事件
     document.getElementById('closeSelectGroupModal').addEventListener('click', () => hideModal('selectGroupModal'));
     document.getElementById('cancelSelectGroup').addEventListener('click', () => hideModal('selectGroupModal'));
@@ -194,6 +201,13 @@ function setupEventListeners() {
     elements.groupNameInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             createGroup();
+        }
+    });
+
+    // 回车重命名分组
+    elements.renameGroupInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            renameGroup();
         }
     });
 
@@ -638,7 +652,6 @@ function renderGroups() {
     allAppsItem.innerHTML = `
         <span class="group-icon">🖥️</span>
         <span class="group-name">所有应用</span>
-        <span class="group-count">${allApps.length}</span>
     `;
     allAppsItem.addEventListener('click', () => {
         currentGroupId = null;
@@ -657,24 +670,84 @@ function renderGroups() {
         groupItem.innerHTML = `
             <span class="group-icon">📁</span>
             <span class="group-name">${group.name}</span>
-            <span class="group-count">${group.apps.length}</span>
-            <button class="btn-delete-group" title="删除分组">×</button>
+            <div class="group-menu-wrapper">
+                <button class="btn-group-menu" title="更多操作">⋯</button>
+                <div class="group-dropdown-menu">
+                    <div class="dropdown-item dropdown-rename" data-action="rename">
+                        <span class="dropdown-icon">✏️</span>
+                        <span>重命名</span>
+                    </div>
+                    <div class="dropdown-item dropdown-delete" data-action="delete">
+                        <span class="dropdown-icon">🗑️</span>
+                        <span>删除分组</span>
+                    </div>
+                </div>
+            </div>
         `;
 
         groupItem.addEventListener('click', (e) => {
-            if (!e.target.matches('.btn-delete-group')) {
+            if (!e.target.closest('.group-menu-wrapper')) {
                 showGroupApps(group.id);
             }
         });
 
-        const deleteBtn = groupItem.querySelector('.btn-delete-group');
-        deleteBtn.addEventListener('click', (e) => {
+        // 三点菜单按钮事件
+        const menuBtn = groupItem.querySelector('.btn-group-menu');
+        const dropdownMenu = groupItem.querySelector('.group-dropdown-menu');
+        
+        // 鼠标悬停显示菜单
+        const menuWrapper = groupItem.querySelector('.group-menu-wrapper');
+        
+        menuWrapper.addEventListener('mouseenter', (e) => {
+            // 关闭其他已打开的菜单
+            document.querySelectorAll('.group-dropdown-menu.show').forEach(menu => {
+                if (menu !== dropdownMenu) menu.classList.remove('show');
+            });
+            
+            // 计算菜单位置（fixed 定位）
+            const rect = menuBtn.getBoundingClientRect();
+            dropdownMenu.style.top = `${rect.bottom + 4}px`;
+            dropdownMenu.style.left = `${rect.left}px`;
+            
+            dropdownMenu.classList.add('show');
+        });
+        
+        menuWrapper.addEventListener('mouseleave', (e) => {
+            // 检查鼠标是否移到了下拉菜单上
+            const relatedTarget = e.relatedTarget;
+            if (!dropdownMenu.contains(relatedTarget)) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+        
+        dropdownMenu.addEventListener('mouseleave', (e) => {
+            const relatedTarget = e.relatedTarget;
+            if (!menuWrapper.contains(relatedTarget)) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // 重命名操作
+        const renameItem = groupItem.querySelector('.dropdown-rename');
+        renameItem.addEventListener('click', (e) => {
             e.stopPropagation();
+            dropdownMenu.classList.remove('show');
+            openRenameGroupModal(group);
+        });
+
+        // 删除操作
+        const deleteItem = groupItem.querySelector('.dropdown-delete');
+        deleteItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownMenu.classList.remove('show');
             deleteGroup(group.id);
         });
 
         elements.groupsList.appendChild(groupItem);
     });
+
+    // 点击其他地方关闭下拉菜单
+    document.addEventListener('click', closeAllGroupMenus);
 
     // 更新选择分组弹窗
     renderGroupSelectList();
@@ -746,6 +819,55 @@ async function createGroup() {
     hideModal('addGroupModal');
     elements.groupNameInput.value = '';
     showToast(`分组"${name}"创建成功`, 'success');
+}
+
+// 关闭所有分组下拉菜单
+function closeAllGroupMenus(e) {
+    if (!e.target.closest('.group-menu-wrapper')) {
+        document.querySelectorAll('.group-dropdown-menu.show').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    }
+}
+
+// 打开重命名分组弹窗
+function openRenameGroupModal(group) {
+    elements.renameGroupInput.value = group.name;
+    elements.renameGroupInput.dataset.groupId = group.id;
+    showModal('renameGroupModal');
+}
+
+// 重命名分组
+async function renameGroup() {
+    const groupId = elements.renameGroupInput.dataset.groupId;
+    const newName = elements.renameGroupInput.value.trim();
+
+    if (!newName) {
+        showToast('请输入分组名称', 'warning');
+        return;
+    }
+
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    // 检查名称是否与其他分组重复
+    if (groups.some(g => g.id !== groupId && g.name === newName)) {
+        showToast('分组名称已存在', 'warning');
+        return;
+    }
+
+    const oldName = group.name;
+    group.name = newName;
+    await saveGroupsToStorage();
+    renderGroups();
+    hideModal('renameGroupModal');
+
+    // 如果当前正在查看被重命名的分组，更新标题
+    if (currentGroupId === groupId) {
+        elements.currentView.textContent = `📁 ${newName}`;
+    }
+
+    showToast(`分组"${oldName}"已重命名为"${newName}"`, 'success');
 }
 
 // 删除分组
@@ -897,6 +1019,9 @@ function showModal(modalId) {
         elements.groupNameInput.focus();
     } else if (modalId === 'addPortableModal') {
         elements.portableNameInput.focus();
+    } else if (modalId === 'renameGroupModal') {
+        elements.renameGroupInput.focus();
+        elements.renameGroupInput.select();
     }
 }
 

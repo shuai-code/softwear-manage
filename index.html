@@ -106,6 +106,24 @@
         </div>
     </div>
 
+    <!-- 重命名分组弹窗 -->
+    <div class="modal" id="renameGroupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>重命名分组</h3>
+                <button class="modal-close" id="closeRenameGroupModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="renameGroupInput">分组名称</label>
+                <input type="text" id="renameGroupInput" placeholder="请输入新的分组名称" maxlength="20" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" id="cancelRenameGroup">取消</button>
+                <button class="btn-primary" id="confirmRenameGroup">确定</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 选择分组弹窗 -->
     <div class="modal" id="selectGroupModal">
         <div class="modal-content">
