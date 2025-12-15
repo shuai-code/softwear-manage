@@ -1,0 +1,22 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+# Log #
+logs/
+*.log
+
+# Eclipse #
+.settings/
+.classpath
+.project
+pom-xml-flattened
+
+node_modules/

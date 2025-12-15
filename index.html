@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+    <title>软件管理器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 - 分组管理 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📁 分组管理</h2>
+                <div class="sidebar-header-btns">
+                    <button id="addGroupBtn" class="btn-icon" title="添加分组">
+                        <span>+</span>
+                    </button>
+                </div>
+            </div>
+            <div class="groups-list" id="groupsList">
+                <!-- 分组列表动态生成 -->
+            </div>
+            <div class="sidebar-footer">
+                <button id="addPortableBtn" class="btn-add-portable" title="添加便携式应用">
+                    ➕ 添加便携应用
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部工具栏 -->
+            <header class="toolbar">
+                <div class="toolbar-left">
+                    <h1 id="currentView">🖥️ 所有应用</h1>
+                    <span class="app-count" id="appCount">0 个应用</span>
+                </div>
+                <div class="toolbar-right">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="搜索应用..." />
+                    </div>
+                    <button id="themeToggleBtn" class="theme-toggle" title="切换主题">
+                        🌙
+                    </button>
+                    <button id="refreshBtn" class="btn-secondary" title="刷新应用列表">
+                        🔄 刷新
+                    </button>
+                    <button id="scanBtn" class="btn-primary">
+                        🔍 扫描应用
+                    </button>
+                </div>
+            </header>
+
+            <!-- 操作栏 -->
+            <div class="action-bar" id="actionBar" style="display: none;">
+                <span class="selected-count">已选择 <strong id="selectedCount">0</strong> 个应用</span>
+                <button id="addToGroupBtn" class="btn-action">
+                    ➕ 添加到分组
+                </button>
+                <button id="cancelSelectBtn" class="btn-ghost">
+                    ✖️ 取消选择
+                </button>
+            </div>
+
+            <!-- 分组操作栏 -->
+            <div class="group-action-bar" id="groupActionBar" style="display: none;">
+                <button id="quickLaunchBtn" class="btn-launch">
+                    🚀 快速启动全部
+                </button>
+                <button id="removeFromGroupBtn" class="btn-danger">
+                    🗑️ 从分组移除
+                </button>
+            </div>
+
+            <!-- 应用列表 -->
+            <div class="apps-grid" id="appsGrid">
+                <div class="loading" id="loadingState">
+                    <div class="spinner"></div>
+                    <p>正在扫描已安装的应用程序...</p>
+                </div>
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-icon">📦</div>
+                    <p>点击"扫描应用"按钮开始</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加分组弹窗 -->
+    <div class="modal" id="addGroupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>创建新分组</h3>
+                <button class="modal-close" id="closeAddGroupModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="groupNameInput">分组名称</label>
+                <input type="text" id="groupNameInput" placeholder="请输入分组名称" maxlength="20" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" id="cancelAddGroup">取消</button>
+                <button class="btn-primary" id="confirmAddGroup">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 选择分组弹窗 -->
+    <div class="modal" id="selectGroupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>选择目标分组</h3>
+                <button class="modal-close" id="closeSelectGroupModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="group-select-list" id="groupSelectList">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" id="cancelSelectGroup">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加便携应用弹窗 -->
+    <div class="modal" id="addPortableModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加便携应用</h3>
+                <button class="modal-close" id="closeAddPortableModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="portableNameInput">应用名称</label>
+                    <input type="text" id="portableNameInput" placeholder="请输入应用名称" maxlength="50" />
+                </div>
+                <div class="form-group">
+                    <label for="portablePathInput">可执行文件路径</label>
+                    <div class="file-select-box">
+                        <input type="text" id="portablePathInput" placeholder="选择 .exe 文件" readonly />
+                        <button class="btn-browse" id="browseExeBtn">浏览</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="portablePublisherInput">发布者（可选）</label>
+                    <input type="text" id="portablePublisherInput" placeholder="请输入发布者名称" maxlength="50" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" id="cancelAddPortable">取消</button>
+                <button class="btn-primary" id="confirmAddPortable">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
