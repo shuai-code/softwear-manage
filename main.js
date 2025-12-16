@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, nativeImage, shell } = require('electron');
 const path = require('path');
 const { exec, spawn } = require('child_process');
 const fs = require('fs');
@@ -66,10 +66,84 @@ app.on('window-all-closed', () => {
     }
 });
 
+// 检查路径是否为有效的可执行文件
+function isValidExePath(exePath) {
+    if (!exePath || !exePath.endsWith('.exe')) return false;
+    try {
+        return fs.existsSync(exePath);
+    } catch {
+        return false;
+    }
+}
+
+// 扫描开始菜单快捷方式
+async function scanStartMenuShortcuts() {
+    return new Promise((resolve) => {
+        const shortcuts = new Map(); // name -> {path, publisher}
+        
+        // 开始菜单目录
+        const startMenuPaths = [
+            path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+            path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs')
+        ];
+
+        // 使用 PowerShell 解析快捷方式
+        const psScript = `
+            $shell = New-Object -ComObject WScript.Shell
+            $results = @()
+            $paths = @(${startMenuPaths.map(p => `'${p.replace(/\\/g, '\\\\')}'`).join(',')})
+            foreach ($basePath in $paths) {
+                if (Test-Path $basePath) {
+                    Get-ChildItem -Path $basePath -Recurse -Filter "*.lnk" -ErrorAction SilentlyContinue | ForEach-Object {
+                        try {
+                            $shortcut = $shell.CreateShortcut($_.FullName)
+                            $target = $shortcut.TargetPath
+                            if ($target -and $target.EndsWith('.exe') -and (Test-Path $target)) {
+                                $name = $_.BaseName
+                                $results += "$name|$target"
+                            }
+                        } catch {}
+                    }
+                }
+            }
+            $results -join ";;;"
+        `;
+
+        exec(`chcp 65001 >nul && powershell -NoProfile -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`, 
+            { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }, 
+            (error, stdout) => {
+                if (!error && stdout) {
+                    const items = stdout.trim().split(';;;');
+                    items.forEach(item => {
+                        const [name, targetPath] = item.split('|');
+                        if (name && targetPath && targetPath.endsWith('.exe')) {
+                            // 过滤掉卸载程序和帮助文件
+                            const lowerName = name.toLowerCase();
+                            if (!lowerName.includes('uninstall') && 
+                                !lowerName.includes('卸载') &&
+                                !lowerName.includes('help') &&
+                                !lowerName.includes('帮助') &&
+                                !lowerName.includes('readme') &&
+                                !lowerName.includes('website') &&
+                                !lowerName.includes('官网')) {
+                                shortcuts.set(name, { path: targetPath });
+                            }
+                        }
+                    });
+                }
+                resolve(shortcuts);
+            }
+        );
+    });
+}
+
 // 扫描已安装的应用程序
 async function scanInstalledApps() {
+    // 先扫描开始菜单快捷方式
+    const shortcutsMap = await scanStartMenuShortcuts();
+    
     return new Promise((resolve) => {
-        const apps = [];
+        const appsMap = new Map(); // 使用 Map 进行去重和合并
         const registryPaths = [
             'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
             'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
@@ -78,7 +152,6 @@ async function scanInstalledApps() {
 
         let completed = 0;
         const processPath = (regPath) => {
-            // 使用 reg query 命令获取应用信息，chcp 65001 切换到 UTF-8 编码
             exec(`chcp 65001 >nul && reg query "${regPath}" /s`, { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }, (error, stdout) => {
                 if (!error && stdout) {
                     const entries = stdout.split(/\r?\n\r?\n/);
@@ -103,29 +176,36 @@ async function scanInstalledApps() {
                         });
 
                         if (displayName && displayName.length > 0) {
-                            // 获取可执行文件路径
-                            let exePath = '';
-                            if (displayIcon) {
-                                // displayIcon 可能包含逗号和图标索引，需要处理
-                                exePath = displayIcon.split(',')[0].replace(/"/g, '').trim();
-                            }
-
-                            // 如果没有从displayIcon获取到，尝试从installLocation查找
-                            if ((!exePath || !exePath.endsWith('.exe')) && installLocation) {
-                                exePath = installLocation;
-                            }
-
                             // 过滤掉系统更新和无效条目
                             if (!displayName.startsWith('KB') &&
                                 !displayName.includes('Update for') &&
                                 !displayName.includes('Security Update') &&
                                 !displayName.includes('Hotfix')) {
 
-                                // 避免重复
-                                const exists = apps.some(a => a.name === displayName);
-                                if (!exists) {
-                                    apps.push({
-                                        id: Buffer.from(displayName).toString('base64').replace(/[^a-zA-Z0-9]/g, ''),
+                                // 获取可执行文件路径
+                                let exePath = '';
+                                if (displayIcon) {
+                                    exePath = displayIcon.split(',')[0].replace(/"/g, '').trim();
+                                }
+                                if ((!exePath || !exePath.endsWith('.exe')) && installLocation) {
+                                    exePath = installLocation;
+                                }
+
+                                const appId = Buffer.from(displayName).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
+                                
+                                // 检查是否已存在
+                                if (appsMap.has(displayName)) {
+                                    // 如果已存在，比较路径有效性，选择更好的
+                                    const existing = appsMap.get(displayName);
+                                    if (!isValidExePath(existing.path) && isValidExePath(exePath)) {
+                                        existing.path = exePath;
+                                    }
+                                    if (!existing.publisher && publisher) {
+                                        existing.publisher = publisher;
+                                    }
+                                } else {
+                                    appsMap.set(displayName, {
+                                        id: appId,
                                         name: displayName,
                                         path: exePath,
                                         installLocation: installLocation,
@@ -141,7 +221,43 @@ async function scanInstalledApps() {
 
                 completed++;
                 if (completed === registryPaths.length) {
-                    // 按名称排序
+                    // 合并开始菜单快捷方式的信息
+                    shortcutsMap.forEach((shortcutInfo, shortcutName) => {
+                        // 尝试匹配已有应用
+                        let matched = false;
+                        for (const [appName, appInfo] of appsMap) {
+                            // 模糊匹配：快捷方式名称包含应用名或应用名包含快捷方式名称
+                            const appNameLower = appName.toLowerCase();
+                            const shortcutNameLower = shortcutName.toLowerCase();
+                            if (appNameLower.includes(shortcutNameLower) || 
+                                shortcutNameLower.includes(appNameLower) ||
+                                appNameLower.replace(/\s/g, '') === shortcutNameLower.replace(/\s/g, '')) {
+                                // 如果匹配到且快捷方式路径有效而原路径无效，则更新
+                                if (!isValidExePath(appInfo.path) && isValidExePath(shortcutInfo.path)) {
+                                    appInfo.path = shortcutInfo.path;
+                                }
+                                matched = true;
+                                break;
+                            }
+                        }
+                        
+                        // 如果没有匹配到，作为新应用添加
+                        if (!matched && isValidExePath(shortcutInfo.path)) {
+                            const appId = Buffer.from(shortcutName).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
+                            appsMap.set(shortcutName, {
+                                id: appId,
+                                name: shortcutName,
+                                path: shortcutInfo.path,
+                                installLocation: path.dirname(shortcutInfo.path),
+                                publisher: '',
+                                isRunning: false,
+                                isPortable: false
+                            });
+                        }
+                    });
+
+                    // 转换为数组并排序
+                    const apps = Array.from(appsMap.values());
                     apps.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
                     resolve(apps);
                 }
@@ -372,6 +488,34 @@ ipcMain.handle('launch-app', async (event, appPath) => {
     }
 });
 
+// 停止应用
+ipcMain.handle('stop-app', async (event, appPath) => {
+    try {
+        if (!appPath) {
+            return { success: false, error: '路径为空' };
+        }
+        
+        const exeName = path.basename(appPath);
+        
+        return new Promise((resolve) => {
+            exec(`taskkill /IM "${exeName}" /F`, { encoding: 'utf8' }, (error, stdout, stderr) => {
+                if (error) {
+                    // 检查是否是因为进程不存在
+                    if (stderr && stderr.includes('not found')) {
+                        resolve({ success: false, error: '应用未运行' });
+                    } else {
+                        resolve({ success: false, error: error.message });
+                    }
+                } else {
+                    resolve({ success: true });
+                }
+            });
+        });
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 ipcMain.handle('get-groups', () => {
     return loadGroups();
 });
@@ -527,4 +671,27 @@ ipcMain.handle('get-storage-info', () => {
         defaultDir: defaultDataDir,
         isCustom: !!settings.dataDir && settings.dataDir !== defaultDataDir
     };
+});
+
+// 打开应用所在目录
+ipcMain.handle('open-directory', async (event, filePath) => {
+    try {
+        if (!filePath) {
+            return { success: false, error: '路径为空' };
+        }
+        
+        // 获取文件所在目录
+        const dirPath = path.dirname(filePath);
+        
+        if (!fs.existsSync(dirPath)) {
+            return { success: false, error: '目录不存在' };
+        }
+        
+        // 打开目录并选中文件
+        shell.showItemInFolder(filePath);
+        return { success: true };
+    } catch (error) {
+        console.error('打开目录失败:', error);
+        return { success: false, error: error.message };
+    }
 });

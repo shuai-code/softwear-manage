@@ -608,9 +608,9 @@ body {
 }
 
 .section-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 /* 加载状态 */
@@ -661,12 +661,11 @@ body {
 .app-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-    display: grid;
-    grid-template-columns: auto 48px 1fr auto auto;
-    gap: 12px;
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: flex;
     align-items: center;
+    gap: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
@@ -675,8 +674,8 @@ body {
 .app-card:hover {
     background: var(--bg-card-hover);
     border-color: var(--accent-primary);
-    transform: translateY(-2px);
     box-shadow: var(--shadow);
+    z-index: 100;
 }
 
 .app-card.selected {
@@ -704,6 +703,10 @@ body {
     border-left: 4px solid var(--info);
 }
 
+.app-checkbox {
+    flex-shrink: 0;
+}
+
 .app-checkbox input {
     width: 18px;
     height: 18px;
@@ -712,31 +715,35 @@ body {
 }
 
 .app-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     background: var(--bg-tertiary);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .app-icon img {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
 }
 
 .app-info {
+    flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .app-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -745,7 +752,6 @@ body {
 .app-publisher {
     font-size: 12px;
     color: var(--text-secondary);
-    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -759,19 +765,29 @@ body {
     text-overflow: ellipsis;
 }
 
+/* 应用操作区域包装 */
+.app-actions-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
 .app-status {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     font-size: 12px;
     padding: 4px 10px;
-    border-radius: 20px;
+    border-radius: 12px;
     white-space: nowrap;
+    min-width: 70px;
+    justify-content: center;
 }
 
 .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
 }
 
@@ -810,12 +826,13 @@ body {
 }
 
 .btn-launch-single {
-    padding: 8px 14px;
+    padding: 8px 16px;
+    min-width: 76px;
     background: var(--success);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -823,7 +840,8 @@ body {
 
 .btn-launch-single:hover:not(:disabled) {
     background: #16a34a;
-    transform: scale(1.05);
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
 }
 
 .btn-launch-single:disabled {
@@ -832,10 +850,47 @@ body {
     cursor: not-allowed;
 }
 
-.btn-launch-single.btn-running {
-    background: var(--success-bg);
-    color: var(--success);
-    border: 1px solid var(--success);
+/* 停止按钮 */
+.btn-stop-single {
+    padding: 8px 16px;
+    min-width: 76px;
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-stop-single:hover {
+    background: var(--error);
+    color: white;
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.btn-edit-path {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-edit-path:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
 }
 
 .btn-set-path {
@@ -857,6 +912,103 @@ body {
 
 .path-missing {
     color: var(--warning) !important;
+}
+
+/* 应用卡片更多操作菜单 */
+.app-more-menu {
+    position: relative;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.app-card:hover .app-more-menu {
+    z-index: 99999;
+}
+
+.btn-app-more {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 1px;
+    border: 1px solid var(--border-color);
+}
+
+.app-card:hover .btn-app-more {
+    opacity: 1;
+}
+
+.btn-app-more:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+/* 应用卡片下拉菜单 */
+.app-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    padding-top: 4px;
+    min-width: 140px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.15s ease;
+    pointer-events: none;
+}
+
+.app-dropdown-menu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.app-dropdown-menu-inner {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.app-dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.app-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+    transition: all 0.15s ease;
+}
+
+.app-dropdown-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.app-dropdown-icon {
+    font-size: 14px;
 }
 
 /* 弹窗 */

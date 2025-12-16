@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 启动应用
     launchApp: (appPath) => ipcRenderer.invoke('launch-app', appPath),
 
+    // 停止应用
+    stopApp: (appPath) => ipcRenderer.invoke('stop-app', appPath),
+
     // 获取分组列表
     getGroups: () => ipcRenderer.invoke('get-groups'),
 
@@ -53,5 +56,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectStorageDir: () => ipcRenderer.invoke('select-storage-dir'),
 
     // 获取存储目录信息
-    getStorageInfo: () => ipcRenderer.invoke('get-storage-info')
+    getStorageInfo: () => ipcRenderer.invoke('get-storage-info'),
+
+    // 打开应用所在目录
+    openDirectory: (filePath) => ipcRenderer.invoke('open-directory', filePath)
 });

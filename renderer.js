@@ -479,22 +479,85 @@ function createAppCard(app, showSetPath = false) {
             <p class="app-publisher" title="${publisherText}">${publisherText}</p>
             <p class="app-path ${!hasPath ? 'path-missing' : ''}" title="${app.path || '路径未知'}">${app.path || '❌ 缺少可执行文件路径'}</p>
         </div>
-        <div class="app-status ${statusClass}">
-            <span class="status-dot"></span>
-            ${statusText}
-        </div>
-        <div class="app-actions">
+        <div class="app-actions-wrapper">
+            <div class="app-status ${statusClass}">
+                <span class="status-dot"></span>
+                ${statusText}
+            </div>
             ${showSetPath ? `
                 <button class="btn-set-path" title="指定可执行文件">
-                    📂 指定路径
+                    指定路径
+                </button>
+            ` : (app.isRunning ? `
+                <button class="btn-stop-single" title="停止应用">
+                    ⏹️ 停止
                 </button>
             ` : `
-                <button class="btn-launch-single ${app.isRunning ? 'btn-running' : ''}" ${launchDisabled ? 'disabled' : ''} title="${launchTitle}">
-                    ${app.isRunning ? '✅ 运行中' : '▶️ 启动'}
+                <button class="btn-launch-single" ${!hasPath ? 'disabled' : ''} title="${launchTitle}">
+                    ▶️ 启动
                 </button>
-            `}
+            `)}
+        </div>
+        <div class="app-more-menu">
+            <button class="btn-app-more" title="更多操作">⋯</button>
+            <div class="app-dropdown-menu">
+                <div class="app-dropdown-menu-inner">
+                    <div class="app-dropdown-item" data-action="open-dir">
+                        <span class="app-dropdown-icon">📁</span>
+                        <span>打开目录</span>
+                    </div>
+                    <div class="app-dropdown-item" data-action="set-path">
+                        <span class="app-dropdown-icon">📂</span>
+                        <span>目录设置</span>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
+
+    // 更多操作菜单事件
+    const moreMenuWrapper = card.querySelector('.app-more-menu');
+    const dropdownMenu = card.querySelector('.app-dropdown-menu');
+
+    moreMenuWrapper.addEventListener('mouseenter', (e) => {
+        e.stopPropagation();
+        // 关闭其他已打开的菜单
+        document.querySelectorAll('.app-dropdown-menu.show').forEach(menu => {
+            if (menu !== dropdownMenu) menu.classList.remove('show');
+        });
+        
+        dropdownMenu.classList.add('show');
+    });
+
+    moreMenuWrapper.addEventListener('mouseleave', (e) => {
+        const relatedTarget = e.relatedTarget;
+        if (!dropdownMenu.contains(relatedTarget)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
+
+    dropdownMenu.addEventListener('mouseleave', (e) => {
+        const relatedTarget = e.relatedTarget;
+        if (!moreMenuWrapper.contains(relatedTarget)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
+
+    // 打开目录操作
+    const openDirItem = card.querySelector('[data-action="open-dir"]');
+    openDirItem.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.remove('show');
+        await openAppDirectory(app);
+    });
+
+    // 目录设置操作
+    const setPathItem = card.querySelector('[data-action="set-path"]');
+    setPathItem.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.remove('show');
+        await setAppPath(app);
+    });
 
     // 选择复选框事件
     const checkbox = card.querySelector('input[type="checkbox"]');
@@ -505,7 +568,7 @@ function createAppCard(app, showSetPath = false) {
 
     // 点击卡片切换选择
     card.addEventListener('click', (e) => {
-        if (!e.target.matches('button') && !e.target.matches('input')) {
+        if (!e.target.matches('button') && !e.target.matches('input') && !e.target.closest('.app-more-menu')) {
             toggleAppSelection(app.id);
             checkbox.checked = selectedApps.has(app.id);
         }
@@ -520,7 +583,16 @@ function createAppCard(app, showSetPath = false) {
         });
     }
 
-    // 指定路径按钮事件
+    // 停止按钮事件
+    const stopBtn = card.querySelector('.btn-stop-single');
+    if (stopBtn) {
+        stopBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await stopSingleApp(app);
+        });
+    }
+
+    // 指定路径按钮事件（缺少路径时显示的按钮）
     const setPathBtn = card.querySelector('.btn-set-path');
     if (setPathBtn) {
         setPathBtn.addEventListener('click', async (e) => {
@@ -530,6 +602,49 @@ function createAppCard(app, showSetPath = false) {
     }
 
     return card;
+}
+
+// 停止单个应用
+async function stopSingleApp(app) {
+    if (!app.path) {
+        showToast('无法停止：缺少可执行文件路径', 'error');
+        return;
+    }
+
+    // 弹出确认框
+    if (!confirm(`确定要停止"${app.name}"吗？\n\n注意：强制停止可能导致未保存的数据丢失。`)) {
+        return;
+    }
+
+    try {
+        const result = await window.electronAPI.stopApp(app.path);
+        if (result.success) {
+            showToast(`${app.name} 已停止`, 'success');
+            // 延迟刷新状态
+            setTimeout(refreshStatus, 500);
+        } else {
+            showToast(`停止失败: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showToast(`停止失败: ${error.message}`, 'error');
+    }
+}
+
+// 打开应用所在目录
+async function openAppDirectory(app) {
+    if (!app.path) {
+        showToast('该应用没有设置可执行文件路径', 'warning');
+        return;
+    }
+
+    try {
+        const result = await window.electronAPI.openDirectory(app.path);
+        if (!result.success) {
+            showToast('无法打开目录: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('打开目录失败: ' + error.message, 'error');
+    }
 }
 
 // 切换应用选择
@@ -825,6 +940,12 @@ async function createGroup() {
 function closeAllGroupMenus(e) {
     if (!e.target.closest('.group-menu-wrapper')) {
         document.querySelectorAll('.group-dropdown-menu.show').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    }
+    // 同时关闭应用卡片的下拉菜单
+    if (!e.target.closest('.app-more-menu')) {
+        document.querySelectorAll('.app-dropdown-menu.show').forEach(menu => {
             menu.classList.remove('show');
         });
     }
