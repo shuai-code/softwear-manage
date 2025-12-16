@@ -198,7 +198,7 @@ body {
 
 .btn-group-menu {
     width: 28px;
-    height: 28px;
+    height: 10px;
     border: none;
     background: transparent;
     color: var(--text-muted);

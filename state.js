@@ -1,0 +1,50 @@
+// 全局状态与 DOM 引用
+export const state = {
+    allApps: [],
+    groups: [],
+    selectedApps: new Set(),
+    currentGroupId: null,
+    isScanning: false,
+    currentTheme: 'dark',
+    appIcons: {}
+};
+
+export const elements = {
+    groupsList: document.getElementById('groupsList'),
+    appsGrid: document.getElementById('appsGrid'),
+    loadingState: document.getElementById('loadingState'),
+    emptyState: document.getElementById('emptyState'),
+    scanBtn: document.getElementById('scanBtn'),
+    refreshBtn: document.getElementById('refreshBtn'),
+    searchInput: document.getElementById('searchInput'),
+    addGroupBtn: document.getElementById('addGroupBtn'),
+    actionBar: document.getElementById('actionBar'),
+    groupActionBar: document.getElementById('groupActionBar'),
+    selectedCount: document.getElementById('selectedCount'),
+    appCount: document.getElementById('appCount'),
+    currentView: document.getElementById('currentView'),
+    addGroupModal: document.getElementById('addGroupModal'),
+    selectGroupModal: document.getElementById('selectGroupModal'),
+    renameGroupModal: document.getElementById('renameGroupModal'),
+    groupNameInput: document.getElementById('groupNameInput'),
+    renameGroupInput: document.getElementById('renameGroupInput'),
+    groupSelectList: document.getElementById('groupSelectList'),
+    toastContainer: document.getElementById('toastContainer'),
+    addToGroupBtn: document.getElementById('addToGroupBtn'),
+    cancelSelectBtn: document.getElementById('cancelSelectBtn'),
+    quickLaunchBtn: document.getElementById('quickLaunchBtn'),
+    removeFromGroupBtn: document.getElementById('removeFromGroupBtn'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    settingsModal: document.getElementById('settingsModal'),
+    themeSwitcher: document.getElementById('themeSwitcher'),
+    storagePathInput: document.getElementById('storagePathInput'),
+    browseStoragePathBtn: document.getElementById('browseStoragePathBtn'),
+    resetStoragePathBtn: document.getElementById('resetStoragePathBtn'),
+    addPortableBtn: document.getElementById('addPortableBtn'),
+    addPortableModal: document.getElementById('addPortableModal'),
+    portableNameInput: document.getElementById('portableNameInput'),
+    portablePathInput: document.getElementById('portablePathInput'),
+    portablePublisherInput: document.getElementById('portablePublisherInput'),
+    browseExeBtn: document.getElementById('browseExeBtn')
+};
+
