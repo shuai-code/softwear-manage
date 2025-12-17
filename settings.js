@@ -10,6 +10,17 @@ export async function loadSettings() {
         if (elements.storagePathInput) {
             elements.storagePathInput.value = settings.dataDir || settings.defaultDataDir;
         }
+
+        if (elements.closeBehaviorExitRadio && elements.closeBehaviorHideRadio) {
+            const behavior = settings.closeBehavior || 'exit';
+            elements.closeBehaviorExitRadio.checked = behavior === 'exit';
+            elements.closeBehaviorHideRadio.checked = behavior === 'hide';
+        }
+
+        if (elements.closePromptCheckbox) {
+            const showPrompt = settings.closePrompt !== false;
+            elements.closePromptCheckbox.checked = !showPrompt;
+        }
     } catch (error) {
         console.error('加载设置失败:', error);
     }
@@ -40,6 +51,17 @@ async function openSettings() {
         const settings = await window.electronAPI.getSettings();
         elements.storagePathInput.value = settings.dataDir || settings.defaultDataDir;
         updateThemeSwitcher(settings.theme || 'dark');
+
+        if (elements.closeBehaviorExitRadio && elements.closeBehaviorHideRadio) {
+            const behavior = settings.closeBehavior || 'exit';
+            elements.closeBehaviorExitRadio.checked = behavior === 'exit';
+            elements.closeBehaviorHideRadio.checked = behavior === 'hide';
+        }
+
+        if (elements.closePromptCheckbox) {
+            const showPrompt = settings.closePrompt !== false;
+            elements.closePromptCheckbox.checked = !showPrompt;
+        }
     } catch (error) {
         console.error('加载设置失败:', error);
     }
@@ -81,5 +103,30 @@ export function initSettingsEvents() {
 
     elements.browseStoragePathBtn.addEventListener('click', browseStoragePath);
     elements.resetStoragePathBtn.addEventListener('click', resetStoragePath);
+
+    const handleCloseBehaviorChange = async () => {
+        try {
+            const behavior = elements.closeBehaviorHideRadio && elements.closeBehaviorHideRadio.checked ? 'hide' : 'exit';
+            const disablePrompt = elements.closePromptCheckbox ? elements.closePromptCheckbox.checked : false;
+            await window.electronAPI.saveSettings({
+                closeBehavior: behavior,
+                closePrompt: !disablePrompt
+            });
+            showToast('关闭行为设置已保存', 'success');
+        } catch (error) {
+            console.error('保存关闭行为设置失败:', error);
+            showToast('保存关闭行为设置失败', 'error');
+        }
+    };
+
+    if (elements.closeBehaviorExitRadio) {
+        elements.closeBehaviorExitRadio.addEventListener('change', handleCloseBehaviorChange);
+    }
+    if (elements.closeBehaviorHideRadio) {
+        elements.closeBehaviorHideRadio.addEventListener('change', handleCloseBehaviorChange);
+    }
+    if (elements.closePromptCheckbox) {
+        elements.closePromptCheckbox.addEventListener('change', handleCloseBehaviorChange);
+    }
 }
 

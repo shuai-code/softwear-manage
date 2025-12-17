@@ -1,6 +1,6 @@
 import { state, elements } from './state.js';
 import { showModal, hideModal, showToast } from './ui.js';
-import { renderApps, showGroupApps } from './apps.js';
+import { renderApps, showGroupApps, scanApps } from './apps.js';
 
 export async function loadGroups() {
     state.groups = await window.electronAPI.getGroups();
@@ -40,13 +40,20 @@ export function renderGroups() {
         <span class="group-icon">🖥️</span>
         <span class="group-name">所有应用</span>
     `;
-    allAppsItem.addEventListener('click', () => {
+    allAppsItem.addEventListener('click', async () => {
         state.currentGroupId = null;
         elements.currentView.textContent = '🖥️ 所有应用';
         state.selectedApps.clear();
-        renderApps(state.allApps);
-        renderGroups();
         elements.groupActionBar.style.display = 'none';
+
+        // 如果还没有数据或正在扫描，则触发一次全量扫描
+        if (!state.isScanning && state.allApps.length === 0) {
+            await scanApps();
+        } else {
+            renderApps(state.allApps);
+        }
+
+        renderGroups();
     });
     elements.groupsList.appendChild(allAppsItem);
 

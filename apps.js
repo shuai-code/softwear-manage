@@ -34,7 +34,6 @@ async function loadAppIcons(apps) {
 export async function scanApps() {
     if (state.isScanning) return;
     state.isScanning = true;
-    elements.scanBtn.disabled = true;
     elements.loadingState.style.display = 'flex';
     elements.emptyState.style.display = 'none';
     elements.appsGrid.querySelectorAll('.app-card, .apps-section').forEach(el => el.remove());
@@ -53,7 +52,6 @@ export async function scanApps() {
         elements.emptyState.style.display = 'flex';
     } finally {
         state.isScanning = false;
-        elements.scanBtn.disabled = false;
         elements.loadingState.style.display = 'none';
     }
 }
@@ -422,7 +420,6 @@ function hidePortableModal() {
 }
 
 export function bindAppEvents() {
-    elements.scanBtn.addEventListener('click', scanApps);
     elements.refreshBtn.addEventListener('click', refreshStatus);
     elements.searchInput.addEventListener('input', handleSearch);
     elements.addPortableBtn.addEventListener('click', () => showModal('addPortableModal'));
@@ -463,9 +460,10 @@ export function registerGroupProxies({ createGroup, renameGroup, quickLaunchGrou
 }
 
 export async function initAppData() {
-    // 初始显示空状态
-    elements.loadingState.style.display = 'none';
-    elements.emptyState.style.display = 'flex';
+    // 启动时自动加载所有应用
+    elements.loadingState.style.display = 'flex';
+    elements.emptyState.style.display = 'none';
+    await scanApps();
     renderGroupSelectList();
 }
 

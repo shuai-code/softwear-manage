@@ -47,14 +47,11 @@
                     <button id="refreshBtn" class="btn-secondary" title="刷新应用列表">
                         🔄 刷新
                     </button>
-                    <button id="scanBtn" class="btn-primary">
-                        🔍 扫描应用
-                    </button>
                 </div>
             </header>
 
             <!-- 操作栏 -->
-            <div class="action-bar" id="actionBar" style="display: none;">
+            <div class="action-bar" id="actionBar">
                 <span class="selected-count">已选择 <strong id="selectedCount">0</strong> 个应用</span>
                 <button id="addToGroupBtn" class="btn-action">
                     ➕ 添加到分组
@@ -82,7 +79,7 @@
                 </div>
                 <div class="empty-state" id="emptyState" style="display: none;">
                     <div class="empty-icon">📦</div>
-                    <p>点击"扫描应用"按钮开始</p>
+                    <p>暂无应用数据</p>
                 </div>
             </div>
         </main>
@@ -215,6 +212,31 @@
                         <div class="settings-storage-hint">
                             <span class="hint-icon">💡</span>
                             <span>修改存储目录后需要重启应用才能生效</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4 class="settings-section-title">🧩 行为</h4>
+                    <div class="settings-item settings-item-vertical">
+                        <div class="settings-item-info">
+                            <span class="settings-item-label">关闭应用时</span>
+                            <span class="settings-item-desc">选择点击右上角关闭按钮时的默认操作</span>
+                        </div>
+                        <div class="settings-item-control settings-close-options">
+                            <label class="choice-label">
+                                <input type="radio" name="closeBehavior" value="exit" id="closeBehaviorExit">
+                                <span>直接退出应用</span>
+                            </label>
+                            <label class="choice-label">
+                                <input type="radio" name="closeBehavior" value="hide" id="closeBehaviorHide">
+                                <span>隐藏到系统托盘</span>
+                            </label>
+                        </div>
+                        <div class="settings-item-control">
+                            <label class="choice-label">
+                                <input type="checkbox" id="closePromptCheckbox">
+                                <span>关闭时不再弹出提示对话框</span>
+                            </label>
                         </div>
                     </div>
                 </div>

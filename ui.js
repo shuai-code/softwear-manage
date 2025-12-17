@@ -33,15 +33,20 @@ export function showToast(message, type = 'info') {
 }
 
 export function updateSelectionUI() {
-    elements.selectedCount.textContent = state.selectedApps.size;
+    const selectedCount = state.selectedApps.size;
+    elements.selectedCount.textContent = selectedCount;
 
     if (state.currentGroupId) {
+        // 在分组视图：不展示“已选择”栏，仅显示分组操作栏
         elements.actionBar.style.display = 'none';
         elements.groupActionBar.style.display = 'flex';
-        elements.removeFromGroupBtn.disabled = state.selectedApps.size === 0;
+        elements.removeFromGroupBtn.disabled = selectedCount === 0;
     } else {
-        elements.actionBar.style.display = state.selectedApps.size > 0 ? 'flex' : 'none';
+        // 在所有应用视图：显示“已选择”栏，并根据是否有选中项控制按钮可用
+        elements.actionBar.style.display = 'flex';
         elements.groupActionBar.style.display = 'none';
+        elements.addToGroupBtn.disabled = selectedCount === 0;
+        elements.cancelSelectBtn.disabled = selectedCount === 0;
     }
 
     document.querySelectorAll('.app-card').forEach(card => {

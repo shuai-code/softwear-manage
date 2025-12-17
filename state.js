@@ -14,7 +14,6 @@ export const elements = {
     appsGrid: document.getElementById('appsGrid'),
     loadingState: document.getElementById('loadingState'),
     emptyState: document.getElementById('emptyState'),
-    scanBtn: document.getElementById('scanBtn'),
     refreshBtn: document.getElementById('refreshBtn'),
     searchInput: document.getElementById('searchInput'),
     addGroupBtn: document.getElementById('addGroupBtn'),
@@ -45,6 +44,9 @@ export const elements = {
     portableNameInput: document.getElementById('portableNameInput'),
     portablePathInput: document.getElementById('portablePathInput'),
     portablePublisherInput: document.getElementById('portablePublisherInput'),
-    browseExeBtn: document.getElementById('browseExeBtn')
+    browseExeBtn: document.getElementById('browseExeBtn'),
+    closeBehaviorExitRadio: document.getElementById('closeBehaviorExit'),
+    closeBehaviorHideRadio: document.getElementById('closeBehaviorHide'),
+    closePromptCheckbox: document.getElementById('closePromptCheckbox')
 };
 

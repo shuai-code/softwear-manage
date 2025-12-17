@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, nativeImage, shell, Tray } = require('electron');
 const path = require('path');
 const { exec, spawn } = require('child_process');
 const fs = require('fs');
 
 let mainWindow;
+let tray = null;
+let isQuiting = false;
 
 // 默认数据存储路径
 const defaultDataDir = app.getPath('userData');
@@ -28,6 +30,88 @@ function getPortableAppsFile() {
     return path.join(getDataDir(), 'portableApps.json');
 }
 
+function createTray() {
+    if (tray) return;
+
+    let icon = null;
+    try {
+        // 优先使用打包后的应用图标（例如 electron-builder 的图标）
+        const candidateIcons = [
+            path.join(process.resourcesPath || __dirname, 'icon.ico'),
+            path.join(process.resourcesPath || __dirname, 'icon.png'),
+            path.join(__dirname, 'icon.ico'),
+            path.join(__dirname, 'icon.png')
+        ];
+
+        for (const p of candidateIcons) {
+            if (fs.existsSync(p)) {
+                const img = nativeImage.createFromPath(p);
+                if (!img.isEmpty()) {
+                    icon = img;
+                    break;
+                }
+            }
+        }
+
+        // 最后退回到默认应用图标（在部分 Windows 环境下可从 exe 中提取）
+        if (!icon || icon.isEmpty()) {
+            const exeIcon = nativeImage.createFromPath(process.execPath);
+            if (!exeIcon.isEmpty()) {
+                icon = exeIcon;
+            }
+        }
+
+        if (!icon || icon.isEmpty()) {
+            icon = nativeImage.createEmpty();
+        }
+    } catch {
+        icon = nativeImage.createEmpty();
+    }
+
+    tray = new Tray(icon);
+    tray.setToolTip('软件管理器');
+
+    const contextMenu = Menu.buildFromTemplate([
+        {
+            label: '显示主窗口',
+            click: () => {
+                if (mainWindow) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                } else {
+                    createWindow();
+                }
+            }
+        },
+        { type: 'separator' },
+        {
+            label: '退出',
+            click: () => {
+                isQuiting = true;
+                app.quit();
+            }
+        }
+    ]);
+
+    tray.setContextMenu(contextMenu);
+
+    tray.on('double-click', () => {
+        if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+        } else {
+            createWindow();
+        }
+    });
+}
+
+function destroyTray() {
+    if (tray) {
+        tray.destroy();
+        tray = null;
+    }
+}
+
 function createWindow() {
     // 隐藏菜单栏
     Menu.setApplicationMenu(null);
@@ -47,6 +131,68 @@ function createWindow() {
         autoHideMenuBar: true
     });
 
+    const settings = loadSettings();
+    const initialCloseBehavior = settings.closeBehavior || 'exit';
+    const initialShowPrompt = settings.closePrompt !== false;
+
+    mainWindow.on('close', (e) => {
+        if (isQuiting) {
+            destroyTray();
+            return;
+        }
+
+        const latestSettings = loadSettings();
+        const behavior = latestSettings.closeBehavior || initialCloseBehavior || 'exit';
+        const showPrompt = latestSettings.closePrompt !== false && initialShowPrompt;
+
+        if (!showPrompt) {
+            if (behavior === 'hide') {
+                e.preventDefault();
+                createTray();
+                mainWindow.hide();
+            } else {
+                isQuiting = true;
+                destroyTray();
+                // 允许窗口正常关闭
+            }
+            return;
+        }
+
+        e.preventDefault();
+
+        dialog.showMessageBox(mainWindow, {
+            type: 'question',
+            buttons: ['隐藏到系统托盘', '直接退出', '取消'],
+            defaultId: behavior === 'hide' ? 0 : 1,
+            cancelId: 2,
+            title: '关闭应用',
+            message: '请选择关闭应用时的操作：',
+            checkboxLabel: '下次不再提示，记住我的选择',
+            checkboxChecked: false
+        }).then(({ response, checkboxChecked }) => {
+            if (response === 2) {
+                return;
+            }
+
+            const newBehavior = response === 0 ? 'hide' : 'exit';
+            const s = loadSettings();
+            s.closeBehavior = newBehavior;
+            if (checkboxChecked) {
+                s.closePrompt = false;
+            }
+            saveSettings(s);
+
+            if (newBehavior === 'hide') {
+                createTray();
+                mainWindow.hide();
+            } else {
+                isQuiting = true;
+                destroyTray();
+                mainWindow.close();
+            }
+        });
+    });
+
     mainWindow.loadFile('index.html');
 }
 
@@ -56,8 +202,16 @@ app.whenReady().then(() => {
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
+        } else if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
         }
     });
+});
+
+app.on('before-quit', () => {
+    isQuiting = true;
+    destroyTray();
 });
 
 app.on('window-all-closed', () => {
@@ -407,7 +561,7 @@ function loadSettings() {
     } catch (error) {
         console.error('加载设置失败:', error);
     }
-    return { theme: 'dark' };
+    return { theme: 'dark', closeBehavior: 'exit', closePrompt: true };
 }
 
 // 保存设置
@@ -634,7 +788,9 @@ ipcMain.handle('get-settings', () => {
     return {
         theme: settings.theme || 'dark',
         dataDir: settings.dataDir || defaultDataDir,
-        defaultDataDir: defaultDataDir
+        defaultDataDir: defaultDataDir,
+        closeBehavior: settings.closeBehavior || 'exit',
+        closePrompt: settings.closePrompt !== false
     };
 });
 
